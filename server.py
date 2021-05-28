@@ -30,10 +30,10 @@ async def stream_response_archive(request, proc, interval_sec, chunk_size):
             await asyncio.sleep(interval_sec)
     except asyncio.CancelledError:
         logging.debug('Download was interrupted')
-
-    finally:
-        logging.debug('kill process zip')
         proc.kill()
+        logging.debug('kill process zip')
+    finally:
+        # response.force_close()
         await proc.communicate()
     return response
 
@@ -85,6 +85,7 @@ if __name__ == '__main__':
     app = web.Application()
     app.add_routes([
         web.get('/', handle_index_page),
-        web.get('/archive/{archive_hash}/', partial(archivate, interval_sec=args.interval, folder_path=args.folder_path)),
+        web.get('/archive/{archive_hash}/',
+                partial(archivate, interval_sec=args.interval, folder_path=args.folder_path, chunk_size=args.size)),
     ])
     web.run_app(app, host=args.host, port=args.port)
