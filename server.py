@@ -9,7 +9,7 @@ from aiohttp import web
 from dotenv import load_dotenv
 
 
-async def stream_response_archive(request, proc, interval_sec, chunk_size):
+async def stream_response_archive(request, process, interval_sec, chunk_size):
     response = web.StreamResponse()
 
     response.headers['Content-Type'] = 'application/zip'
@@ -20,9 +20,9 @@ async def stream_response_archive(request, proc, interval_sec, chunk_size):
     try:
         while True:
 
-            if proc.stdout.at_eof():
+            if process.stdout.at_eof():
                 break
-            bin_f = await proc.stdout.read(chunk_size)
+            bin_f = await process.stdout.read(chunk_size)
 
             # Отправляет клиенту очередную порцию ответа
             logging.debug('Sending archive chunk ...')
@@ -30,11 +30,11 @@ async def stream_response_archive(request, proc, interval_sec, chunk_size):
             await asyncio.sleep(interval_sec)
     except asyncio.CancelledError:
         logging.debug('Download was interrupted')
-        proc.kill()
+        process.kill()
         logging.debug('kill process zip')
     finally:
         # response.force_close()
-        await proc.communicate()
+        await process.communicate()
     return response
 
 
@@ -45,10 +45,10 @@ async def archivate(request, interval_sec, folder_path, chunk_size):
         logging.debug(f'not folder to path {directory_path}')
         raise web.HTTPNotFound(text='Архив не существует или был удален')
     cmd = ['zip', '-jr', '-', directory_path]
-    proc = await asyncio.create_subprocess_exec(
+    process_zip = await asyncio.create_subprocess_exec(
         *cmd,
         stdout=asyncio.subprocess.PIPE)
-    return await stream_response_archive(request, proc, interval_sec, chunk_size)
+    return await stream_response_archive(request, process_zip, interval_sec, chunk_size)
 
 
 async def handle_index_page(request):
