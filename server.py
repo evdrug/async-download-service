@@ -33,7 +33,6 @@ async def stream_response_archive(request, process, interval_sec, chunk_size):
         process.kill()
         logging.debug('kill process zip')
     finally:
-        # response.force_close()
         await process.communicate()
     return response
 
