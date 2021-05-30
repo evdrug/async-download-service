@@ -32,20 +32,23 @@ async def stream_response_archive(request, process, interval_sec, chunk_size):
         logging.debug('Download was interrupted')
         process.kill()
         logging.debug('kill process zip')
+        raise
     finally:
         await process.communicate()
     return response
 
 
 async def archivate(request, interval_sec, folder_path, chunk_size):
-    name = request.match_info.get('archive_hash', None)
-    directory_path = f"{folder_path}/{name}"
+    name_photo_directory = request.match_info.get('archive_hash', None)
+    directory_path = f"{folder_path}/{name_photo_directory}"
     if not os.path.exists(directory_path):
         logging.debug(f'not folder to path {directory_path}')
         raise web.HTTPNotFound(text='Архив не существует или был удален')
-    cmd = ['zip', '-jr', '-', directory_path]
+
+    cmd = ['zip', '-r', '-', name_photo_directory]
     process_zip = await asyncio.create_subprocess_exec(
         *cmd,
+        cwd=folder_path,
         stdout=asyncio.subprocess.PIPE)
     return await stream_response_archive(request, process_zip, interval_sec, chunk_size)
 
